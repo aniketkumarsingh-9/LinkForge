@@ -1,0 +1,24 @@
+{
+  "name": "linkforge-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LinkForge - Enterprise-grade Full-Stack URL Shortener",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "keywords": [
+    "linkforge",
+    "url-shortener",
+    "redis",
+    "mongodb",
+    "react",
+    "docker"
+  ],
+  "author": "LinkForge Contributors",
+  "license": "MIT"
+}

@@ -1,0 +1,89 @@
+services:
+  # Database Service
+  mongodb:
+    image: mongo:7.0
+    container_name: linkforge-mongodb
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "27017:27017"
+    networks:
+      - linkforge-network
+
+  # In-Memory Cache Service
+  redis:
+    image: redis:7.2-alpine
+    container_name: linkforge-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --loglevel warning
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - linkforge-network
+
+  # Backend REST API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: linkforge-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - BASE_URL=http://localhost:5000
+      - CLIENT_URL=http://localhost:3000
+      - MONGODB_URI=mongodb://mongodb:27017/linkforge
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_CACHE_TTL=86400
+      - JWT_SECRET=${JWT_SECRET:-linkforge-production-secure-jwt-secret-key-replace}
+      - COOKIE_SECRET=${COOKIE_SECRET:-linkforge-production-cookie-signing-secret}
+    ports:
+      - "5000:5000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - linkforge-network
+
+  # Frontend Web UI (Nginx + React SPA)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: linkforge-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - linkforge-network
+
+networks:
+  linkforge-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+    driver: local
+  redis-data:
+    driver: local
